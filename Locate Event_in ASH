@@ -1,0 +1,12 @@
+select *
+  from (select round(100 * ratio_to_report(DB_TIME) over(), 1) "ACTIVE_DB_TIME%",
+               wait_event,
+               sql_id
+          from (select count(*) as DB_TIME,
+                       sql_id,
+                       nvl(event, 'ON CPU') wait_event
+                  from v$active_session_history
+                 WHERE sample_time > systimestamp - interval '30' minute
+                 group by sql_id, event)
+         order by 1 desc)
+where rownum < 11
