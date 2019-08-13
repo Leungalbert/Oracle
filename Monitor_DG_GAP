@@ -1,0 +1,17 @@
+with STD as
+ (select *
+    from gv$archive_dest_status a
+   where a.type = 'PHYSICAL'
+     and DESTINATION is not null),
+PRI as
+ (select *
+    from gv$archive_dest_status a
+   where database_mode = 'OPEN'
+     and type = 'LOCAL')
+select PRI.ARCHIVED_THREAD# as PRI_ARCHIVED_THREAD#,
+       PRI.ARCHIVED_SEQ# as PRI_ARCHIVED_SEQ#,
+       STD.APPLIED_SEQ# as STD_APPLIED_SEQ#,
+       (PRI.ARCHIVED_SEQ# - STD.APPLIED_SEQ#) as SEQ_GAP
+  from PRI, STD
+ where PRI.ARCHIVED_THREAD# = STD.APPLIED_THREAD#
+ order by 1
