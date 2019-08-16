@@ -7,6 +7,11 @@ select xid,
                 'yyyymmdd hh24:mi:ss')) * 24 * 3600 execute_seconds
   from v$active_session_history
  where to_char(sample_time, 'yyyymmdd hh24:mi:ss') between
-       'begin_time' and 'end_time'
+       '20170119 15:00:00' and '20170119 17:00:00'
    and xid is not null
  group by xid
+having(to_date(to_char(max(sample_time), 'yyyymmdd hh24:mi:ss'), 'yyyymmdd hh24:mi:ss') - to_date(to_char(min(sample_time), 'yyyymmdd hh24:mi:ss'), 'yyyymmdd hh24:mi:ss')) * 24 * 3600 >= 1
+ order by (to_date(to_char(max(sample_time), 'yyyymmdd hh24:mi:ss'),
+                   'yyyymmdd hh24:mi:ss') -
+          to_date(to_char(min(sample_time), 'yyyymmdd hh24:mi:ss'),
+                   'yyyymmdd hh24:mi:ss')) * 24 * 3600
