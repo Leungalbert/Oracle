@@ -1,0 +1,12 @@
+select xid,
+       min(sample_time) min_sample_time,
+       max(sample_time) max_sample_time,
+       (to_date(to_char(max(sample_time), 'yyyymmdd hh24:mi:ss'),
+                'yyyymmdd hh24:mi:ss') -
+       to_date(to_char(min(sample_time), 'yyyymmdd hh24:mi:ss'),
+                'yyyymmdd hh24:mi:ss')) * 24 * 3600 execute_seconds
+  from v$active_session_history
+ where to_char(sample_time, 'yyyymmdd hh24:mi:ss') between
+       'begin_time' and 'end_time'
+   and xid is not null
+ group by xid
