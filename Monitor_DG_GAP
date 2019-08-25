@@ -1,17 +1,41 @@
-with STD as
- (select *
-    from gv$archive_dest_status a
-   where a.type = 'PHYSICAL'
-     and DESTINATION is not null),
-PRI as
- (select *
-    from gv$archive_dest_status a
-   where database_mode = 'OPEN'
-     and type = 'LOCAL')
-select PRI.ARCHIVED_THREAD# as PRI_ARCHIVED_THREAD#,
-       PRI.ARCHIVED_SEQ# as PRI_ARCHIVED_SEQ#,
-       STD.APPLIED_SEQ# as STD_APPLIED_SEQ#,
-       (PRI.ARCHIVED_SEQ# - STD.APPLIED_SEQ#) as SEQ_GAP
-  from PRI, STD
- where PRI.ARCHIVED_THREAD# = STD.APPLIED_THREAD#
- order by 1
+SELECT al.thread#,
+       ads.dest_id,
+       ads.DEST_NAME,
+       (SELECT ads.TYPE || ' ' || ad.TARGET
+          FROM v$archive_dest AD
+         WHERE AD.DEST_ID = ADS.DEST_ID) TARGET,
+       ADS.DATABASE_MODE,
+       ads.STATUS,
+       ads.error,
+       ads.RECOVERY_MODE,
+       ads.DB_UNIQUE_NAME,
+       ads.DESTINATION,
+       ads.GAP_STATUS,
+       (SELECT MAX(sequence#) FROM v$log na WHERE na.thread# = al.thread#) Current_Seq#,
+       MAX(sequence#) Last_Archived,
+       max(CASE
+             WHEN al.APPLIED = 'YES' AND  ads.TYPE <> 'LOCAL' THEN
+              al.sequence#
+           end) APPLIED_SEQ#,
+       (SELECT ad.applied_scn
+          FROM v$archive_dest AD
+         WHERE AD.DEST_ID = ADS.DEST_ID) applied_scn
+  FROM (SELECT *
+          FROM v$archived_log V
+         WHERE V.resetlogs_change# =
+               (SELECT d.RESETLOGS_CHANGE# FROM v$database d)) al,
+       v$archive_dest_status ads
+ WHERE al.dest_id(+) = ads.dest_id
+   AND  ads.STATUS != 'INACTIVE'
+ GROUP BY al.thread#,
+          ads.dest_id,
+          ads.DEST_NAME,
+          ads.STATUS,
+          ads.error,
+          ads.TYPE,
+          ADS.DATABASE_MODE,
+          ads.RECOVERY_MODE,
+          ads.DB_UNIQUE_NAME,
+          ads.DESTINATION,
+          ads.GAP_STATUS
+ ORDER BY al.thread#, ads.dest_id;
