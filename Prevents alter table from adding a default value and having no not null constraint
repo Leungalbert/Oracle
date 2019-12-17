@@ -1,0 +1,26 @@
+create or replace trigger add_column
+before alter on schema
+declare 
+    sql_text ora_name_list_t;
+    str_flag1 varchar2(20) := 'default';
+    n varchar2(255);
+begin
+    n:=ora_sql_txt (sql_text);
+     FOR i IN 1..n LOOP
+    if regexp_instr(sql_text(i),str_flag1) > 0 then
+    RAISE_APPLICATION_ERROR(-20001, 'add colum default not allowed');
+    else 
+    dbms_output.put_line('sql_text(i)');
+    end if;
+    end loop;
+end;
+/
+
+
+SQL> alter table t add c3 varchar2(20) default 'ccc';
+alter table t add c3 varchar2(20) default 'ccc'
+*
+ERROR at line 1:
+ORA-00604: error occurred at recursive SQL level 1
+ORA-20001: add colum default not allowed
+ORA-06512: at line 9
