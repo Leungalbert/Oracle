@@ -1,0 +1,50 @@
+select thread#,
+       DB_UNIQUE_NAME,
+       DEST_NAME,
+       TARGET,
+       DATABASE_MODE,
+       error,
+       RECOVERY_MODE,
+       GAP_STATUS,
+       APPLIED_SEQ#,
+       current_scn,
+       applied_scn,
+       to_char((scn_to_timestamp(current_scn)),'yyyymmdd hh24:mi:ss') current_scn_time,
+       to_char((scn_to_timestamp(applied_scn)),'yyyymmdd hh24:mi:ss') applied_scn_time,
+       scn_to_timestamp(current_scn)- scn_to_timestamp(current_scn) as delay_time
+  from (SELECT al.thread#,
+               ads.dest_id,
+               ads.DEST_NAME,
+               ads.TYPE || ' ' || ad.TARGET TARGET,
+               ADS.DATABASE_MODE,
+               ads.STATUS,
+               ads.error,
+               ads.RECOVERY_MODE,
+               ads.DB_UNIQUE_NAME,
+               ads.DESTINATION,
+               ads.GAP_STATUS,
+               (SELECT sequence#
+                  FROM v$log na
+                 WHERE na.thread# = al.thread#
+                   and status = 'CURRENT') Current_Seq#,
+               Last_Archived,
+               al.APPLIED_SEQ#,
+               ad.applied_scn,
+               current_scn
+          FROM (SELECT dest_id,
+                       thread#,
+                       d.current_scn,
+                       MAX(sequence#) Last_Archived,
+                       max(CASE
+                             WHEN APPLIED = 'YES' THEN
+                              sequence#
+                           end) APPLIED_SEQ#
+                  FROM v$archived_log V, v$database d
+                 WHERE V.resetlogs_change# = d.RESETLOGS_CHANGE#
+                 group by dest_id, thread#, d.current_scn) al,
+               v$archive_dest_status ads,
+               v$archive_dest AD
+         WHERE al.dest_id(+) = ads.dest_id 
+           AND ads.STATUS != 'INACTIVE'
+           AND AD.DEST_ID = ADS.DEST_ID and ad.APPLIED_SCN <> 0
+         ORDER BY al.thread#, ads.dest_id)
