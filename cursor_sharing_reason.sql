@@ -386,7 +386,7 @@ with a as
                 0
              end) as USE_FEEDBACK_STATS
     from gv\$sql_shared_cursor
-   where sql_id = '$2' and INST_ID=$INST_ID)
+   where sql_id = 'travelskydba_sqlid' and INST_ID=$INST_ID)
 select REASON, CNT
   from (select REASON, CNT
           from a unpivot(CNT for REASON in(UNBOUND_CURSOR,
@@ -844,7 +844,7 @@ with a as
                else
                 0
              end) as USE_FEEDBACK_STATS
-    from gv\$sql_shared_cursor where sql_id = '$2' and inst_id=$INST_ID group by sql_id,child_number)
+    from gv\$sql_shared_cursor where sql_id = 'travelskydba_sqlid' and inst_id=$INST_ID group by sql_id,child_number)
 select sql_id,child_number,reason,count(*) 
   from (select sql_id,child_number,REASON, CNT
           from a unpivot(CNT for REASON in(UNBOUND_CURSOR,
